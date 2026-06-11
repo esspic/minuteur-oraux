@@ -11,7 +11,10 @@
 <style>
 :root {
   --bg:#fafaf9; --txt:#1c1917; --muted:#78716c; --track:#eceae8;
-  --green:#0d9f6e; --blue:#2563eb; --amber:#ea8c00; --red:#e02d2d;
+  --green:#6ee7b7; --green-deep:#047857;
+  --blue:#93c5fd;  --blue-deep:#1d4ed8;
+  --coral:#fda4af; --coral-deep:#e11d48;
+  --red:#f87171;   --red-deep:#dc2626;
 }
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { height:100%; margin:0; }
@@ -26,6 +29,17 @@ body.flash { animation:bgflash 1.6s ease-in-out infinite; }
 @keyframes bgflash { 0%,100% { background:#fff1f1; } 50% { background:#ffd9d9; } }
 .screen { display:none; flex-direction:column; height:100%; }
 .screen.active { display:flex; }
+
+/* ---------- Barre de progression (haut) ---------- */
+#progress {
+  position:fixed; top:0; left:0; height:1.4vmin; width:100%;
+  background:var(--track); z-index:5; display:none;
+}
+#progress .fill {
+  height:100%; width:100%; border-radius:0 99px 99px 0;
+  background:var(--green);
+  transition:width .2s linear, background .4s;
+}
 
 /* ---------- Écran réglages ---------- */
 #scr-config { padding:6vmin 6vmin; gap:5vmin; justify-content:center; align-items:center; }
@@ -66,43 +80,28 @@ h1 { font-size:6.5vmin; margin:0; text-align:center; font-weight:800; letter-spa
 #phase {
   display:flex; align-items:center; gap:2vmin;
   font-size:4.4vmin; font-weight:800; letter-spacing:.22em;
-  color:var(--green); margin-top:2.5vmin;
+  color:var(--green-deep); margin-top:2.5vmin;
   transition:color .4s;
 }
 #phase::before {
   content:''; width:2vmin; height:2vmin; border-radius:50%;
   background:currentColor;
 }
-#scr-timer.entretien #phase { color:var(--blue); }
-#scr-timer.depasse  #phase { color:var(--amber); }
+#scr-timer.entretien #phase { color:var(--blue-deep); }
+#scr-timer.depasse  #phase { color:var(--coral-deep); }
 #scr-timer.depasse  #phase::before { animation:blink 1s infinite; }
-#scr-timer.ecoule   #phase { color:var(--red); }
+#scr-timer.ecoule   #phase { color:var(--red-deep); }
 #scr-timer.ecoule   #phase::before { animation:blink .8s infinite; }
 @keyframes blink { 50% { opacity:.15; } }
 
-#dial {
-  --frac:1; --c:var(--green);
-  width:min(64vmin, 86vw); aspect-ratio:1/1; border-radius:50%;
-  background:conic-gradient(var(--c) calc(var(--frac) * 1turn), var(--track) 0);
-  display:flex; align-items:center; justify-content:center;
-  transition:background .2s;
-}
-#dial .inner {
-  width:76%; height:76%; border-radius:50%;
-  background:var(--bg);
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  transition:background .4s;
-}
-body.flash #dial .inner { background:transparent; }
-body.flash #dial { background:var(--red); }
 #clock {
-  font-size:15vmin; font-weight:800; line-height:1;
+  font-size:min(32vmin, 26vw); font-weight:800; line-height:1;
   font-variant-numeric:tabular-nums; letter-spacing:-.03em;
   color:var(--txt);
   transition:color .4s;
 }
-#scr-timer.depasse #clock { color:var(--amber); }
-#scr-timer.ecoule  #clock { color:#fff; }
+#scr-timer.depasse #clock { color:var(--coral-deep); }
+#scr-timer.ecoule  #clock { color:var(--red-deep); }
 #sub { font-size:3.6vmin; color:var(--muted); text-align:center; min-height:5.5vmin; font-weight:500; }
 
 /* ---------- Écran récap ---------- */
@@ -126,8 +125,9 @@ body.flash #dial { background:var(--red); }
   transition:transform .08s, opacity .15s;
 }
 .bigbtn:active { transform:scale(.98); opacity:.85; }
-.bigbtn.go   { background:var(--green); }
-.bigbtn.warn { background:var(--amber); }
+.bigbtn      { background:var(--blue); color:var(--blue-deep); }
+.bigbtn.go   { background:var(--green); color:var(--green-deep); }
+.bigbtn.warn { background:var(--coral); color:var(--coral-deep); }
 .btnrow { display:flex; gap:3vmin; width:100%; max-width:120vmin; }
 .btnrow .bigbtn.alt { background:transparent; color:var(--txt); border:2px solid var(--track); }
 #btn-config-back {
@@ -140,6 +140,8 @@ body.flash #dial { background:var(--red); }
 </style>
 </head>
 <body>
+
+<div id="progress"><div class="fill"></div></div>
 
 <!-- Réglages -->
 <div id="scr-config" class="screen active">
@@ -158,7 +160,7 @@ body.flash #dial { background:var(--red); }
 <div id="scr-timer" class="screen">
   <button id="btn-config-back">← réglages</button>
   <div id="phase"></div>
-  <div id="dial"><div class="inner"><div id="clock"></div></div></div>
+  <div id="clock"></div>
   <div id="sub"></div>
   <button class="bigbtn" id="btn-main"></button>
 </div>
@@ -177,7 +179,7 @@ body.flash #dial { background:var(--red); }
   </div>
 </div>
 
-<div id="version">v2026-06-11d</div>
+<div id="version">v2026-06-11e</div>
 
 <script>
 'use strict';
@@ -204,12 +206,12 @@ function fmt(sec) {
 }
 function totalSec() { return (cfg.e + cfg.n) * 60; }
 
-// --- Anneau de progression (type Time Timer) ---
-const COLORS = { green:'#0d9f6e', blue:'#2563eb', amber:'#ea8c00', red:'#e02d2d' };
+// --- Barre de progression ---
+const COLORS = { green:'#6ee7b7', blue:'#93c5fd', amber:'#fda4af', red:'#f87171' };
 function setProgress(frac, color) {
-  const d = $('dial');
-  d.style.setProperty('--frac', Math.max(0, Math.min(1, frac)));
-  d.style.setProperty('--c', color);
+  const f = $('progress').firstElementChild;
+  f.style.width = (Math.max(0, Math.min(1, frac)) * 100) + '%';
+  f.style.background = color;
 }
 
 // --- Wake Lock : écran allumé pendant l'oral ---
@@ -227,6 +229,7 @@ document.addEventListener('visibilitychange', () => {
 function show(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $('scr-' + name).classList.add('active');
+  $('progress').style.display = (name === 'timer') ? 'block' : 'none';
 }
 
 // --- Réglages ---
