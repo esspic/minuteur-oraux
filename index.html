@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#101216">
+<title>Minuteur d'oraux</title>
+<style>
+:root { --bg:#101216; --panel:#1a1e26; --border:#3a4150; --muted:#9aa3b2; }
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; margin:0; }
+body {
+  background:var(--bg); color:#fff;
+  font-family:system-ui, -apple-system, sans-serif;
+  height:100dvh; overflow:hidden;
+  touch-action:manipulation; user-select:none; -webkit-user-select:none;
+}
+.screen { display:none; flex-direction:column; height:100%; }
+.screen.active { display:flex; }
+
+/* ---------- Écran réglages ---------- */
+#scr-config { padding:5vmin; gap:4vmin; justify-content:center; }
+h1 { font-size:6.5vmin; margin:0; text-align:center; font-weight:700; }
+.presets { display:flex; gap:3vmin; flex-wrap:wrap; justify-content:center; }
+.preset {
+  font-size:5.5vmin; font-weight:600; padding:3.5vmin 5vmin;
+  border-radius:2.5vmin; border:2px solid var(--border);
+  background:var(--panel); color:#fff; cursor:pointer;
+}
+.preset.selected { border-color:#4da3ff; background:#15293d; }
+.custom { display:flex; gap:5vmin; justify-content:center; }
+.custom label { display:flex; flex-direction:column; align-items:center; gap:1.5vmin; font-size:3.8vmin; color:var(--muted); }
+.custom input {
+  font-size:8vmin; width:28vmin; text-align:center;
+  background:var(--panel); color:#fff;
+  border:2px solid var(--border); border-radius:2.5vmin; padding:1.5vmin;
+}
+#cfg-total { text-align:center; font-size:5vmin; color:var(--muted); }
+#cfg-total b { color:#fff; }
+
+/* ---------- Écran minuteur ---------- */
+#scr-timer { align-items:center; justify-content:space-between; padding:3vmin; }
+#phase {
+  font-size:7vmin; font-weight:800; letter-spacing:.12em;
+  padding:1.5vmin 6vmin; border-radius:2vmin; margin-top:1vmin;
+  background:#1f6f3f;
+}
+#scr-timer.entretien #phase { background:#1d4ed8; }
+#scr-timer.depasse  #phase { background:#b45309; }
+#scr-timer.ecoule   #phase { background:#b91c1c; }
+#clock {
+  font-size:min(30vmin, 26vw); font-weight:800; line-height:1.05;
+  font-variant-numeric:tabular-nums; letter-spacing:.02em;
+}
+#scr-timer.depasse #clock { color:#fbbf24; }
+#scr-timer.ecoule  #clock { color:#f87171; }
+#sub { font-size:4.5vmin; color:var(--muted); text-align:center; min-height:6vmin; }
+@keyframes flash { 0%,100% { background:var(--bg); } 50% { background:#4a0d0d; } }
+body.flash { animation:flash 1.2s infinite; }
+
+/* ---------- Écran récap ---------- */
+#scr-recap { padding:5vmin; gap:3vmin; justify-content:center; align-items:center; }
+.recap-line { display:flex; justify-content:space-between; width:100%; max-width:120vmin;
+  font-size:6vmin; padding:2vmin 0; border-bottom:1px solid var(--border); }
+.recap-line .val { font-weight:800; font-variant-numeric:tabular-nums; }
+.recap-line.total { font-size:7vmin; border-bottom:none; }
+.recap-line .over { color:#f87171; }
+
+/* ---------- Boutons ---------- */
+.bigbtn {
+  width:100%; font-size:7vmin; font-weight:700;
+  padding:5.5vmin; border:none; border-radius:3vmin;
+  color:#fff; background:#2563eb; cursor:pointer;
+}
+.bigbtn:active { filter:brightness(1.25); }
+.bigbtn.warn { background:#b45309; }
+.btnrow { display:flex; gap:3vmin; width:100%; }
+.btnrow .bigbtn.alt { background:#374151; }
+#btn-config-back {
+  position:absolute; top:2vmin; left:2vmin;
+  font-size:4vmin; color:var(--muted); background:none; border:none; padding:2vmin; cursor:pointer;
+}
+#version { position:absolute; bottom:1vmin; right:2vmin; font-size:2.5vmin; color:#444c5c; }
+</style>
+</head>
+<body>
+
+<!-- Réglages -->
+<div id="scr-config" class="screen active">
+  <h1>Minuteur d'oraux</h1>
+  <div class="presets" id="presets"></div>
+  <div class="custom">
+    <label>Exposé (min)<input id="in-expose" type="number" inputmode="numeric" min="1" max="120" value="5"></label>
+    <label>Entretien (min)<input id="in-entretien" type="number" inputmode="numeric" min="1" max="120" value="10"></label>
+  </div>
+  <div id="cfg-total"></div>
+  <button class="bigbtn" id="btn-ready">C'est parti</button>
+</div>
+
+<!-- Minuteur -->
+<div id="scr-timer" class="screen">
+  <button id="btn-config-back">← réglages</button>
+  <div id="phase"></div>
+  <div id="clock"></div>
+  <div id="sub"></div>
+  <button class="bigbtn" id="btn-main"></button>
+</div>
+
+<!-- Récapitulatif -->
+<div id="scr-recap" class="screen">
+  <h1>Récapitulatif</h1>
+  <div class="recap-line"><span>Exposé réel</span><span class="val" id="rc-expose"></span></div>
+  <div class="recap-line"><span>Entretien réel</span><span class="val" id="rc-entretien"></span></div>
+  <div class="recap-line total"><span>Total</span><span class="val" id="rc-total"></span></div>
+  <div class="btnrow">
+    <button class="bigbtn alt" id="btn-recap-config">⚙ Réglages</button>
+    <button class="bigbtn" id="btn-next">Candidat suivant</button>
+  </div>
+</div>
+
+<div id="version">v2026-06-11a</div>
+
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+
+const PRESETS = [
+  { e: 5,  n: 10 },
+  { e: 10, n: 30 },
+];
+
+// --- État ---
+let cfg = { e: 5, n: 10 };          // minutes
+let state = 'config';                // config | ready | expose | entretien | recap
+let startExpose = 0, startEntretien = 0;
+let realExpose = 0, realEntretien = 0; // secondes
+let tickTimer = null;
+let wakeLock = null;
+
+// --- Utilitaires ---
+function fmt(sec) {
+  sec = Math.max(0, Math.round(sec));
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return m + ':' + String(s).padStart(2, '0');
+}
+function totalSec() { return (cfg.e + cfg.n) * 60; }
+
+// --- Wake Lock : écran allumé pendant l'oral ---
+async function lockScreen() {
+  try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+}
+function unlockScreen() {
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && (state === 'expose' || state === 'entretien')) lockScreen();
+});
+
+// --- Écrans ---
+function show(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  $('scr-' + name).classList.add('active');
+}
+
+// --- Réglages ---
+function renderPresets() {
+  const box = $('presets');
+  box.innerHTML = '';
+  PRESETS.forEach(p => {
+    const b = document.createElement('button');
+    b.className = 'preset';
+    b.textContent = p.e + ' + ' + p.n + ' min';
+    if (p.e === cfg.e && p.n === cfg.n) b.classList.add('selected');
+    b.onclick = () => {
+      cfg = { e: p.e, n: p.n };
+      $('in-expose').value = p.e;
+      $('in-entretien').value = p.n;
+      renderPresets(); renderTotal();
+    };
+    box.appendChild(b);
+  });
+}
+function readInputs() {
+  cfg.e = Math.max(1, parseInt($('in-expose').value, 10) || 1);
+  cfg.n = Math.max(1, parseInt($('in-entretien').value, 10) || 1);
+}
+function renderTotal() {
+  $('cfg-total').innerHTML = 'Temps total : <b>' + (cfg.e + cfg.n) + ' min</b>';
+}
+$('in-expose').oninput = $('in-entretien').oninput = () => { readInputs(); renderPresets(); renderTotal(); };
+
+// --- Cycle de l'oral ---
+function gotoReady() {
+  state = 'ready';
+  document.body.classList.remove('flash');
+  $('scr-timer').className = 'screen active';
+  $('phase').textContent = 'EXPOSÉ';
+  $('clock').textContent = fmt(cfg.e * 60);
+  $('sub').textContent = 'Exposé ' + cfg.e + ' min · entretien ' + cfg.n + ' min · total ' + (cfg.e + cfg.n) + ' min';
+  $('btn-main').textContent = '▶ Démarrer l\'exposé';
+  $('btn-main').className = 'bigbtn';
+  show('timer');
+}
+
+function mainAction() {
+  if (state === 'ready') {
+    state = 'expose';
+    startExpose = Date.now();
+    $('btn-main').textContent = 'Exposé terminé → entretien';
+    $('btn-config-back').style.display = 'none';
+    lockScreen();
+    tickTimer = setInterval(tick, 200);
+    tick();
+  } else if (state === 'expose') {
+    realExpose = (Date.now() - startExpose) / 1000;
+    state = 'entretien';
+    startEntretien = Date.now();
+    $('btn-main').textContent = '■ Terminer l\'oral';
+    $('btn-main').className = 'bigbtn warn';
+    tick();
+  } else if (state === 'entretien') {
+    realEntretien = (Date.now() - startEntretien) / 1000;
+    endOral();
+  }
+}
+
+function tick() {
+  const now = Date.now();
+  const scr = $('scr-timer');
+  if (state === 'expose') {
+    const elapsed = (now - startExpose) / 1000;
+    const rem = cfg.e * 60 - elapsed;
+    if (rem >= 0) {
+      scr.className = 'screen active';
+      $('phase').textContent = 'EXPOSÉ';
+      $('clock').textContent = fmt(rem);
+      $('sub').textContent = '';
+    } else {
+      scr.className = 'screen active depasse';
+      $('phase').textContent = 'EXPOSÉ — DÉPASSÉ';
+      $('clock').textContent = '+' + fmt(-rem);
+      $('sub').textContent = 'Temps d\'exposé prévu : ' + cfg.e + ' min';
+    }
+  } else if (state === 'entretien') {
+    const elapsed = (now - startEntretien) / 1000;
+    const maxEntretien = totalSec() - realExpose;
+    const rem = maxEntretien - elapsed;
+    if (rem >= 0) {
+      scr.className = 'screen active entretien';
+      document.body.classList.remove('flash');
+      $('phase').textContent = 'ENTRETIEN';
+      $('clock').textContent = fmt(rem);
+      $('sub').textContent = 'Exposé réel : ' + fmt(realExpose);
+    } else {
+      scr.className = 'screen active ecoule';
+      document.body.classList.add('flash');
+      $('phase').textContent = 'TEMPS ÉCOULÉ';
+      $('clock').textContent = '+' + fmt(-rem);
+      $('sub').textContent = 'Total prévu ' + (cfg.e + cfg.n) + ' min dépassé · exposé réel ' + fmt(realExpose);
+    }
+  }
+}
+
+function endOral() {
+  state = 'recap';
+  clearInterval(tickTimer); tickTimer = null;
+  unlockScreen();
+  document.body.classList.remove('flash');
+  const totalReal = realExpose + realEntretien;
+  $('rc-expose').textContent = fmt(realExpose);
+  $('rc-entretien').textContent = fmt(realEntretien);
+  const over = totalReal - totalSec();
+  $('rc-total').innerHTML = fmt(totalReal) +
+    (over > 0 ? ' <span class="over">(+' + fmt(over) + ')</span>' : '');
+  show('recap');
+}
+
+// --- Boutons ---
+$('btn-ready').onclick = () => { readInputs(); gotoReady(); };
+$('btn-main').onclick = mainAction;
+$('btn-config-back').onclick = () => { state = 'config'; show('config'); };
+$('btn-next').onclick = () => { $('btn-config-back').style.display = ''; gotoReady(); };
+$('btn-recap-config').onclick = () => { state = 'config'; $('btn-config-back').style.display = ''; show('config'); };
+
+// Barre espace / Entrée = bouton principal (hors champs de saisie)
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.code === 'Space' || e.code === 'Enter') {
+    e.preventDefault();
+    if (state === 'ready' || state === 'expose' || state === 'entretien') mainAction();
+  }
+});
+
+// --- Init ---
+renderPresets();
+renderTotal();
+</script>
+</body>
+</html>
