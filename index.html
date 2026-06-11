@@ -3,145 +3,143 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#f4f5f7">
+<meta name="theme-color" content="#fafaf9">
 <title>Minuteur d'oraux</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;800&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg:#f4f5f7; --card:#ffffff; --border:#e3e6ea;
-  --txt:#16181d; --muted:#6b7280;
-  --green:#059669; --green-soft:#e7f6ef;
-  --blue:#2563eb;  --blue-soft:#e8effd;
-  --amber:#d97706; --amber-soft:#fdf2e0;
-  --red:#dc2626;   --red-soft:#fdecec;
-  --shadow:0 1px 3px rgba(16,24,40,.07), 0 1px 2px rgba(16,24,40,.05);
+  --bg:#fafaf9; --txt:#1c1917; --muted:#78716c; --track:#eceae8;
+  --green:#0d9f6e; --blue:#2563eb; --amber:#ea8c00; --red:#e02d2d;
 }
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { height:100%; margin:0; }
 body {
   background:var(--bg);
   color:var(--txt);
-  font-family:system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   height:100dvh; overflow:hidden;
   touch-action:manipulation; user-select:none; -webkit-user-select:none;
-  transition:background .4s;
 }
-body.flash { background:var(--red-soft); }
+body.flash { animation:bgflash 1.6s ease-in-out infinite; }
+@keyframes bgflash { 0%,100% { background:#fff1f1; } 50% { background:#ffd9d9; } }
 .screen { display:none; flex-direction:column; height:100%; }
 .screen.active { display:flex; }
 
-/* ---------- Barre de progression (haut) ---------- */
-#progress {
-  position:fixed; top:0; left:0; height:1.2vmin; width:100%;
-  background:#e8eaee; z-index:5; display:none;
-}
-#progress .fill {
-  height:100%; width:100%; border-radius:0 99px 99px 0;
-  background:var(--green);
-  transition:width .2s linear, background .4s;
-}
-
 /* ---------- Écran réglages ---------- */
-#scr-config { padding:6vmin 5vmin; gap:4.5vmin; justify-content:center; align-items:center; }
-h1 { font-size:7vmin; margin:0; text-align:center; font-weight:750; letter-spacing:-.02em; }
-.subtitle { font-size:3.8vmin; color:var(--muted); margin-top:-3vmin; text-align:center; }
-.presets { display:flex; gap:3.5vmin; flex-wrap:wrap; justify-content:center; }
+#scr-config { padding:6vmin 6vmin; gap:5vmin; justify-content:center; align-items:center; }
+h1 { font-size:6.5vmin; margin:0; text-align:center; font-weight:800; letter-spacing:-.03em; }
+.subtitle { font-size:3.4vmin; color:var(--muted); margin-top:-3.5vmin; text-align:center; font-weight:500; }
+.presets { display:flex; gap:3vmin; flex-wrap:wrap; justify-content:center; }
 .preset {
-  display:flex; flex-direction:column; align-items:center; gap:1vmin;
-  padding:3.5vmin 6vmin; cursor:pointer;
-  background:var(--card);
-  border:1.5px solid var(--border); border-radius:3vmin;
-  color:var(--txt); box-shadow:var(--shadow);
+  display:flex; flex-direction:column; align-items:center; gap:.8vmin;
+  padding:3vmin 6vmin; cursor:pointer;
+  background:transparent;
+  border:2px solid var(--track); border-radius:99px;
+  color:var(--txt);
+  font-family:inherit;
   transition:border-color .15s, background .15s, transform .1s;
 }
 .preset:active { transform:scale(.97); }
-.preset .big { font-size:7vmin; font-weight:750; font-variant-numeric:tabular-nums; }
-.preset .small { font-size:3vmin; color:var(--muted); }
-.preset.selected { border-color:var(--blue); background:var(--blue-soft); }
-.preset.selected .big { color:var(--blue); }
+.preset .big { font-size:5.5vmin; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+.preset .small { font-size:2.6vmin; color:var(--muted); font-weight:500; }
+.preset.selected { border-color:var(--txt); background:var(--txt); }
+.preset.selected .big { color:#fff; }
+.preset.selected .small { color:#d6d3d1; }
 .custom { display:flex; gap:5vmin; justify-content:center; }
-.custom label { display:flex; flex-direction:column; align-items:center; gap:1.5vmin; font-size:3.6vmin; color:var(--muted); }
+.custom label { display:flex; flex-direction:column; align-items:center; gap:1.2vmin; font-size:3.2vmin; color:var(--muted); font-weight:500; }
 .custom input {
-  font-size:8vmin; font-weight:700; width:30vmin; text-align:center;
-  background:var(--card); color:var(--txt);
-  border:1.5px solid var(--border); border-radius:2.5vmin; padding:1.5vmin;
-  font-variant-numeric:tabular-nums; outline:none; box-shadow:var(--shadow);
+  font-size:8vmin; font-weight:800; width:28vmin; text-align:center;
+  background:transparent; color:var(--txt);
+  border:none; border-bottom:3px solid var(--track); border-radius:0;
+  padding:.5vmin 0 1vmin;
+  font-family:inherit; font-variant-numeric:tabular-nums; outline:none;
   transition:border-color .15s;
 }
-.custom input:focus { border-color:var(--blue); }
-#cfg-total { font-size:4.5vmin; color:var(--muted); }
-#cfg-total b { color:var(--txt); font-size:5.5vmin; }
+.custom input:focus { border-bottom-color:var(--txt); }
+#cfg-total { font-size:3.8vmin; color:var(--muted); font-weight:500; }
+#cfg-total b { color:var(--txt); font-size:4.6vmin; font-weight:800; }
 
-/* ---------- Écran minuteur ---------- */
-#scr-timer { align-items:center; justify-content:space-between; padding:4vmin 4vmin 3.5vmin; }
+/* ---------- Écran minuteur : anneau type Time Timer ---------- */
+#scr-timer { align-items:center; justify-content:space-between; padding:4.5vmin 4vmin 4vmin; }
 #phase {
-  display:flex; align-items:center; gap:2.2vmin;
-  font-size:5vmin; font-weight:700; letter-spacing:.14em;
-  padding:2vmin 5.5vmin; border-radius:99px; margin-top:3vmin;
-  background:var(--green-soft); color:var(--green);
-  transition:background .4s, color .4s;
+  display:flex; align-items:center; gap:2vmin;
+  font-size:4.4vmin; font-weight:800; letter-spacing:.22em;
+  color:var(--green); margin-top:2.5vmin;
+  transition:color .4s;
 }
 #phase::before {
-  content:''; width:2.2vmin; height:2.2vmin; border-radius:50%;
+  content:''; width:2vmin; height:2vmin; border-radius:50%;
   background:currentColor;
 }
-#scr-timer.entretien #phase { background:var(--blue-soft); color:var(--blue); }
-#scr-timer.depasse #phase { background:var(--amber-soft); color:var(--amber); }
-#scr-timer.depasse #phase::before { animation:blink 1s infinite; }
-#scr-timer.ecoule #phase { background:var(--red); color:#fff; animation:blink-soft 1.2s infinite; }
-@keyframes blink { 50% { opacity:.2; } }
-@keyframes blink-soft { 50% { opacity:.55; } }
+#scr-timer.entretien #phase { color:var(--blue); }
+#scr-timer.depasse  #phase { color:var(--amber); }
+#scr-timer.depasse  #phase::before { animation:blink 1s infinite; }
+#scr-timer.ecoule   #phase { color:var(--red); }
+#scr-timer.ecoule   #phase::before { animation:blink .8s infinite; }
+@keyframes blink { 50% { opacity:.15; } }
 
+#dial {
+  --frac:1; --c:var(--green);
+  width:min(64vmin, 86vw); aspect-ratio:1/1; border-radius:50%;
+  background:conic-gradient(var(--c) calc(var(--frac) * 1turn), var(--track) 0);
+  display:flex; align-items:center; justify-content:center;
+  transition:background .2s;
+}
+#dial .inner {
+  width:76%; height:76%; border-radius:50%;
+  background:var(--bg);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  transition:background .4s;
+}
+body.flash #dial .inner { background:transparent; }
+body.flash #dial { background:var(--red); }
 #clock {
-  font-size:min(34vmin, 28vw); font-weight:750; line-height:1;
-  font-variant-numeric:tabular-nums; letter-spacing:.01em;
+  font-size:15vmin; font-weight:800; line-height:1;
+  font-variant-numeric:tabular-nums; letter-spacing:-.03em;
   color:var(--txt);
   transition:color .4s;
 }
 #scr-timer.depasse #clock { color:var(--amber); }
-#scr-timer.ecoule #clock { color:var(--red); }
-#sub { font-size:4.2vmin; color:var(--muted); text-align:center; min-height:6vmin; }
+#scr-timer.ecoule  #clock { color:#fff; }
+#sub { font-size:3.6vmin; color:var(--muted); text-align:center; min-height:5.5vmin; font-weight:500; }
 
 /* ---------- Écran récap ---------- */
-#scr-recap { padding:5vmin; gap:4vmin; justify-content:center; align-items:center; }
-.card {
-  width:100%; max-width:130vmin;
-  background:var(--card);
-  border:1px solid var(--border); border-radius:4vmin;
-  padding:4vmin 5vmin; box-shadow:var(--shadow);
-}
+#scr-recap { padding:6vmin; gap:5vmin; justify-content:center; align-items:center; }
+.card { width:100%; max-width:120vmin; }
 .recap-line { display:flex; justify-content:space-between; align-items:baseline;
-  font-size:5.5vmin; padding:2.5vmin 0; border-bottom:1px solid var(--border); }
-.recap-line .lbl { color:var(--muted); font-size:4.5vmin; }
-.recap-line .val { font-weight:750; font-variant-numeric:tabular-nums; }
-.recap-line.total { border-bottom:none; font-size:7vmin; }
-.recap-line.total .lbl { color:var(--txt); font-size:5.5vmin; font-weight:700; }
-.recap-line .over { color:var(--red); font-size:4.5vmin; }
+  font-size:5.5vmin; padding:2.8vmin 0; border-bottom:2px solid var(--track); }
+.recap-line .lbl { color:var(--muted); font-size:4vmin; font-weight:500; }
+.recap-line .val { font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+.recap-line.total { border-bottom:none; font-size:7.5vmin; }
+.recap-line.total .lbl { color:var(--txt); font-size:5vmin; font-weight:800; }
+.recap-line .over { color:var(--red); font-size:4.2vmin; font-weight:600; }
 
 /* ---------- Boutons ---------- */
 .bigbtn {
-  width:100%; font-size:6.5vmin; font-weight:700;
-  padding:5vmin; border:none; border-radius:99px;
-  color:#fff; cursor:pointer;
-  background:var(--blue); box-shadow:var(--shadow);
-  transition:transform .08s, filter .15s;
+  width:100%; max-width:120vmin; font-size:5.5vmin; font-weight:800;
+  padding:4.5vmin; border:none; border-radius:99px;
+  color:#fff; cursor:pointer; letter-spacing:-.01em;
+  background:var(--txt);
+  font-family:inherit;
+  transition:transform .08s, opacity .15s;
 }
-.bigbtn:active { transform:scale(.98); filter:brightness(.92); }
+.bigbtn:active { transform:scale(.98); opacity:.85; }
 .bigbtn.go   { background:var(--green); }
 .bigbtn.warn { background:var(--amber); }
-.btnrow { display:flex; gap:3vmin; width:100%; max-width:130vmin; }
-.btnrow .bigbtn.alt { background:var(--card); color:var(--txt); border:1.5px solid var(--border); }
+.btnrow { display:flex; gap:3vmin; width:100%; max-width:120vmin; }
+.btnrow .bigbtn.alt { background:transparent; color:var(--txt); border:2px solid var(--track); }
 #btn-config-back {
-  position:absolute; top:2.5vmin; left:2.5vmin; z-index:6;
-  font-size:3.8vmin; color:var(--muted); background:var(--card);
-  border:1px solid var(--border); border-radius:99px; padding:1.5vmin 3.5vmin; cursor:pointer;
-  box-shadow:var(--shadow);
+  position:absolute; top:3vmin; left:3vmin; z-index:6;
+  font-size:3.4vmin; font-weight:600; color:var(--muted); background:transparent;
+  border:2px solid var(--track); border-radius:99px; padding:1.4vmin 3.5vmin; cursor:pointer;
+  font-family:inherit;
 }
-#version { position:fixed; bottom:1vmin; right:2vmin; font-size:2.4vmin; color:#b4bac3; z-index:6; }
+#version { position:fixed; bottom:1vmin; right:2vmin; font-size:2.2vmin; color:#d6d3d1; z-index:6; }
 </style>
 </head>
 <body>
-
-<div id="progress"><div class="fill"></div></div>
 
 <!-- Réglages -->
 <div id="scr-config" class="screen active">
@@ -160,7 +158,7 @@ h1 { font-size:7vmin; margin:0; text-align:center; font-weight:750; letter-spaci
 <div id="scr-timer" class="screen">
   <button id="btn-config-back">← réglages</button>
   <div id="phase"></div>
-  <div id="clock"></div>
+  <div id="dial"><div class="inner"><div id="clock"></div></div></div>
   <div id="sub"></div>
   <button class="bigbtn" id="btn-main"></button>
 </div>
@@ -179,7 +177,7 @@ h1 { font-size:7vmin; margin:0; text-align:center; font-weight:750; letter-spaci
   </div>
 </div>
 
-<div id="version">v2026-06-11c</div>
+<div id="version">v2026-06-11d</div>
 
 <script>
 'use strict';
@@ -206,12 +204,12 @@ function fmt(sec) {
 }
 function totalSec() { return (cfg.e + cfg.n) * 60; }
 
-// --- Barre de progression ---
-const COLORS = { green:'#059669', blue:'#2563eb', amber:'#d97706', red:'#dc2626' };
+// --- Anneau de progression (type Time Timer) ---
+const COLORS = { green:'#0d9f6e', blue:'#2563eb', amber:'#ea8c00', red:'#e02d2d' };
 function setProgress(frac, color) {
-  const f = $('progress').firstElementChild;
-  f.style.width = (Math.max(0, Math.min(1, frac)) * 100) + '%';
-  f.style.background = color;
+  const d = $('dial');
+  d.style.setProperty('--frac', Math.max(0, Math.min(1, frac)));
+  d.style.setProperty('--c', color);
 }
 
 // --- Wake Lock : écran allumé pendant l'oral ---
@@ -229,7 +227,6 @@ document.addEventListener('visibilitychange', () => {
 function show(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $('scr-' + name).classList.add('active');
-  $('progress').style.display = (name === 'timer') ? 'block' : 'none';
 }
 
 // --- Réglages ---
