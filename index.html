@@ -150,7 +150,7 @@ h1 { font-size:6.5vmin; margin:0; text-align:center; font-weight:800; letter-spa
   <div class="presets" id="presets"></div>
   <div class="custom">
     <label>Exposé (min)<input id="in-expose" type="number" inputmode="numeric" min="1" max="120" value="5"></label>
-    <label>Entretien (min)<input id="in-entretien" type="number" inputmode="numeric" min="1" max="120" value="10"></label>
+    <label>Entretien (min)<input id="in-entretien" type="number" inputmode="numeric" min="0" max="120" value="10"></label>
   </div>
   <div id="cfg-total"></div>
   <button class="bigbtn go" id="btn-ready">C'est parti</button>
@@ -179,7 +179,7 @@ h1 { font-size:6.5vmin; margin:0; text-align:center; font-weight:800; letter-spa
   </div>
 </div>
 
-<div id="version">v2026-06-11e</div>
+<div id="version">v2026-06-11f</div>
 
 <script>
 'use strict';
@@ -253,7 +253,8 @@ function renderPresets() {
 }
 function readInputs() {
   cfg.e = Math.max(1, parseInt($('in-expose').value, 10) || 1);
-  cfg.n = Math.max(1, parseInt($('in-entretien').value, 10) || 1);
+  const n = parseInt($('in-entretien').value, 10);
+  cfg.n = Number.isFinite(n) ? Math.max(0, n) : 0; // 0 = pas d'entretien
 }
 function renderTotal() {
   $('cfg-total').innerHTML = 'Temps total : <b>' + (cfg.e + cfg.n) + ' min</b>';
@@ -267,7 +268,9 @@ function gotoReady() {
   $('scr-timer').className = 'screen active';
   $('phase').textContent = 'EXPOSÉ';
   $('clock').textContent = fmt(cfg.e * 60);
-  $('sub').textContent = 'Exposé ' + cfg.e + ' min · entretien ' + cfg.n + ' min · total ' + (cfg.e + cfg.n) + ' min';
+  $('sub').textContent = cfg.n === 0
+    ? 'Exposé ' + cfg.e + ' min · pas d\'entretien'
+    : 'Exposé ' + cfg.e + ' min · entretien ' + cfg.n + ' min · total ' + (cfg.e + cfg.n) + ' min';
   $('btn-main').textContent = '▶ Démarrer l\'exposé';
   $('btn-main').className = 'bigbtn go';
   setProgress(1, COLORS.green);
@@ -278,14 +281,15 @@ function mainAction() {
   if (state === 'ready') {
     state = 'expose';
     startExpose = Date.now();
-    $('btn-main').textContent = 'Exposé terminé → entretien';
-    $('btn-main').className = 'bigbtn';
+    $('btn-main').textContent = cfg.n === 0 ? '■ Terminer l\'oral' : 'Exposé terminé → entretien';
+    $('btn-main').className = cfg.n === 0 ? 'bigbtn warn' : 'bigbtn';
     $('btn-config-back').style.display = 'none';
     lockScreen();
     tickTimer = setInterval(tick, 200);
     tick();
   } else if (state === 'expose') {
     realExpose = (Date.now() - startExpose) / 1000;
+    if (cfg.n === 0) { realEntretien = 0; endOral(); return; }
     state = 'entretien';
     startEntretien = Date.now();
     $('btn-main').textContent = '■ Terminer l\'oral';
@@ -309,6 +313,14 @@ function tick() {
       $('clock').textContent = fmt(rem);
       $('sub').textContent = '';
       setProgress(rem / (cfg.e * 60), COLORS.green);
+    } else if (cfg.n === 0) {
+      // pas d'entretien : l'exposé dépassé = temps total écoulé
+      scr.className = 'screen active ecoule';
+      document.body.classList.add('flash');
+      $('phase').textContent = 'TEMPS ÉCOULÉ';
+      $('clock').textContent = '+' + fmt(-rem);
+      $('sub').textContent = 'Exposé prévu ' + cfg.e + ' min dépassé';
+      setProgress(0, COLORS.red);
     } else {
       scr.className = 'screen active depasse';
       $('phase').textContent = 'EXPOSÉ — DÉPASSÉ';
@@ -346,6 +358,7 @@ function endOral() {
   const totalReal = realExpose + realEntretien;
   $('rc-expose').textContent = fmt(realExpose);
   $('rc-entretien').textContent = fmt(realEntretien);
+  $('rc-entretien').closest('.recap-line').style.display = cfg.n === 0 ? 'none' : '';
   const over = totalReal - totalSec();
   $('rc-total').innerHTML = fmt(totalReal) +
     (over > 0 ? ' <span class="over">(+' + fmt(over) + ')</span>' : '');
