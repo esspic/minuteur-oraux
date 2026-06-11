@@ -3,98 +3,186 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<meta name="theme-color" content="#101216">
+<meta name="theme-color" content="#0b0e14">
 <title>Minuteur d'oraux</title>
 <style>
-:root { --bg:#101216; --panel:#1a1e26; --border:#3a4150; --muted:#9aa3b2; }
+:root {
+  --bg:#0b0e14; --panel:#151a24; --panel2:#1b2230; --border:#2a3344;
+  --muted:#8b96a8; --txt:#f2f5fa;
+  --green:#10b981; --blue:#3b82f6; --amber:#f59e0b; --red:#ef4444;
+}
 * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { height:100%; margin:0; }
 body {
-  background:var(--bg); color:#fff;
-  font-family:system-ui, -apple-system, sans-serif;
+  background:radial-gradient(120vmax 90vmax at 50% -20%, #18203a 0%, var(--bg) 55%) fixed;
+  color:var(--txt);
+  font-family:system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   height:100dvh; overflow:hidden;
   touch-action:manipulation; user-select:none; -webkit-user-select:none;
 }
 .screen { display:none; flex-direction:column; height:100%; }
 .screen.active { display:flex; }
 
+/* ---------- Barre de progression (haut) ---------- */
+#progress {
+  position:fixed; top:0; left:0; height:1.4vmin; width:100%;
+  background:rgba(255,255,255,.06); z-index:5; display:none;
+}
+#progress .fill {
+  height:100%; width:100%; border-radius:0 99px 99px 0;
+  background:var(--green); box-shadow:0 0 12px var(--green);
+  transition:width .2s linear, background .4s, box-shadow .4s;
+}
+
 /* ---------- Écran réglages ---------- */
-#scr-config { padding:5vmin; gap:4vmin; justify-content:center; }
-h1 { font-size:6.5vmin; margin:0; text-align:center; font-weight:700; }
-.presets { display:flex; gap:3vmin; flex-wrap:wrap; justify-content:center; }
+#scr-config { padding:6vmin 5vmin; gap:4.5vmin; justify-content:center; align-items:center; }
+h1 { font-size:7vmin; margin:0; text-align:center; font-weight:800; letter-spacing:-.02em; }
+.subtitle { font-size:3.8vmin; color:var(--muted); margin-top:-3vmin; text-align:center; }
+.presets { display:flex; gap:3.5vmin; flex-wrap:wrap; justify-content:center; }
 .preset {
-  font-size:5.5vmin; font-weight:600; padding:3.5vmin 5vmin;
-  border-radius:2.5vmin; border:2px solid var(--border);
-  background:var(--panel); color:#fff; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:1vmin;
+  padding:3.5vmin 6vmin; cursor:pointer;
+  background:linear-gradient(180deg, var(--panel2), var(--panel));
+  border:2px solid var(--border); border-radius:3vmin;
+  color:var(--txt); transition:border-color .15s, transform .1s, box-shadow .15s;
 }
-.preset.selected { border-color:#4da3ff; background:#15293d; }
+.preset:active { transform:scale(.97); }
+.preset .big { font-size:7vmin; font-weight:800; font-variant-numeric:tabular-nums; }
+.preset .small { font-size:3vmin; color:var(--muted); }
+.preset.selected {
+  border-color:var(--blue);
+  box-shadow:0 0 0 1px var(--blue), 0 6px 24px -6px rgba(59,130,246,.55);
+}
+.preset.selected .small { color:#9ec5ff; }
 .custom { display:flex; gap:5vmin; justify-content:center; }
-.custom label { display:flex; flex-direction:column; align-items:center; gap:1.5vmin; font-size:3.8vmin; color:var(--muted); }
+.custom label { display:flex; flex-direction:column; align-items:center; gap:1.5vmin; font-size:3.6vmin; color:var(--muted); }
 .custom input {
-  font-size:8vmin; width:28vmin; text-align:center;
-  background:var(--panel); color:#fff;
+  font-size:8vmin; font-weight:700; width:30vmin; text-align:center;
+  background:var(--panel); color:var(--txt);
   border:2px solid var(--border); border-radius:2.5vmin; padding:1.5vmin;
+  font-variant-numeric:tabular-nums; outline:none;
+  transition:border-color .15s, box-shadow .15s;
 }
-#cfg-total { text-align:center; font-size:5vmin; color:var(--muted); }
-#cfg-total b { color:#fff; }
+.custom input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(59,130,246,.25); }
+#cfg-total { font-size:4.5vmin; color:var(--muted); }
+#cfg-total b { color:var(--txt); font-size:5.5vmin; }
 
 /* ---------- Écran minuteur ---------- */
-#scr-timer { align-items:center; justify-content:space-between; padding:3vmin; }
+#scr-timer { align-items:center; justify-content:space-between; padding:4vmin 4vmin 3.5vmin; }
 #phase {
-  font-size:7vmin; font-weight:800; letter-spacing:.12em;
-  padding:1.5vmin 6vmin; border-radius:2vmin; margin-top:1vmin;
-  background:#1f6f3f;
+  display:flex; align-items:center; gap:2.5vmin;
+  font-size:5.5vmin; font-weight:800; letter-spacing:.18em;
+  padding:2vmin 6vmin; border-radius:99px; margin-top:3vmin;
+  border:2px solid var(--green); color:#c7f5e4;
+  background:rgba(16,185,129,.12);
+  box-shadow:0 0 28px -6px var(--green);
+  transition:all .4s;
 }
-#scr-timer.entretien #phase { background:#1d4ed8; }
-#scr-timer.depasse  #phase { background:#b45309; }
-#scr-timer.ecoule   #phase { background:#b91c1c; }
+#phase::before {
+  content:''; width:2.6vmin; height:2.6vmin; border-radius:50%;
+  background:var(--green); box-shadow:0 0 12px var(--green);
+  transition:all .4s;
+}
+#scr-timer.entretien #phase {
+  border-color:var(--blue); color:#cfe3ff; background:rgba(59,130,246,.12);
+  box-shadow:0 0 28px -6px var(--blue);
+}
+#scr-timer.entretien #phase::before { background:var(--blue); box-shadow:0 0 12px var(--blue); }
+#scr-timer.depasse #phase {
+  border-color:var(--amber); color:#ffe9c2; background:rgba(245,158,11,.14);
+  box-shadow:0 0 28px -6px var(--amber);
+}
+#scr-timer.depasse #phase::before { background:var(--amber); box-shadow:0 0 12px var(--amber); animation:blink 1s infinite; }
+#scr-timer.ecoule #phase {
+  border-color:var(--red); color:#ffd2d2; background:rgba(239,68,68,.16);
+  box-shadow:0 0 32px -4px var(--red);
+}
+#scr-timer.ecoule #phase::before { background:var(--red); box-shadow:0 0 12px var(--red); animation:blink .8s infinite; }
+@keyframes blink { 50% { opacity:.25; } }
+
 #clock {
-  font-size:min(30vmin, 26vw); font-weight:800; line-height:1.05;
-  font-variant-numeric:tabular-nums; letter-spacing:.02em;
+  font-size:min(34vmin, 28vw); font-weight:800; line-height:1;
+  font-variant-numeric:tabular-nums; letter-spacing:.01em;
+  background:linear-gradient(180deg, #ffffff 25%, #aebed8 95%);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  filter:drop-shadow(0 6px 24px rgba(120,160,255,.18));
+  transition:filter .4s;
 }
-#scr-timer.depasse #clock { color:#fbbf24; }
-#scr-timer.ecoule  #clock { color:#f87171; }
-#sub { font-size:4.5vmin; color:var(--muted); text-align:center; min-height:6vmin; }
-@keyframes flash { 0%,100% { background:var(--bg); } 50% { background:#4a0d0d; } }
-body.flash { animation:flash 1.2s infinite; }
+#scr-timer.depasse #clock {
+  background:linear-gradient(180deg, #ffe1ad 25%, var(--amber) 95%);
+  -webkit-background-clip:text; background-clip:text;
+  filter:drop-shadow(0 0 28px rgba(245,158,11,.35));
+}
+#scr-timer.ecoule #clock {
+  background:linear-gradient(180deg, #ffc4c4 25%, var(--red) 95%);
+  -webkit-background-clip:text; background-clip:text;
+  filter:drop-shadow(0 0 32px rgba(239,68,68,.45));
+}
+#sub { font-size:4.2vmin; color:var(--muted); text-align:center; min-height:6vmin; }
+
+/* Vignette rouge pulsante quand le temps total est écoulé */
+#vignette {
+  position:fixed; inset:0; pointer-events:none; z-index:4; opacity:0;
+  box-shadow:inset 0 0 18vmin 4vmin rgba(239,68,68,.55);
+  transition:opacity .4s;
+}
+body.flash #vignette { opacity:1; animation:vpulse 1.2s infinite; }
+@keyframes vpulse { 50% { opacity:.25; } }
 
 /* ---------- Écran récap ---------- */
-#scr-recap { padding:5vmin; gap:3vmin; justify-content:center; align-items:center; }
-.recap-line { display:flex; justify-content:space-between; width:100%; max-width:120vmin;
-  font-size:6vmin; padding:2vmin 0; border-bottom:1px solid var(--border); }
+#scr-recap { padding:5vmin; gap:4vmin; justify-content:center; align-items:center; }
+.card {
+  width:100%; max-width:130vmin;
+  background:linear-gradient(180deg, var(--panel2), var(--panel));
+  border:1px solid var(--border); border-radius:4vmin;
+  padding:4vmin 5vmin; box-shadow:0 20px 60px -20px rgba(0,0,0,.7);
+}
+.recap-line { display:flex; justify-content:space-between; align-items:baseline;
+  font-size:5.5vmin; padding:2.5vmin 0; border-bottom:1px solid var(--border); }
+.recap-line .lbl { color:var(--muted); font-size:4.5vmin; }
 .recap-line .val { font-weight:800; font-variant-numeric:tabular-nums; }
-.recap-line.total { font-size:7vmin; border-bottom:none; }
-.recap-line .over { color:#f87171; }
+.recap-line.total { border-bottom:none; font-size:7vmin; }
+.recap-line.total .lbl { color:var(--txt); font-size:5.5vmin; font-weight:700; }
+.recap-line .over { color:var(--red); font-size:4.5vmin; }
 
 /* ---------- Boutons ---------- */
 .bigbtn {
-  width:100%; font-size:7vmin; font-weight:700;
-  padding:5.5vmin; border:none; border-radius:3vmin;
-  color:#fff; background:#2563eb; cursor:pointer;
+  width:100%; font-size:6.5vmin; font-weight:700;
+  padding:5vmin; border:none; border-radius:99px;
+  color:#fff; cursor:pointer;
+  background:linear-gradient(180deg, #3b82f6, #2563eb);
+  box-shadow:0 10px 30px -8px rgba(59,130,246,.6), inset 0 1px 0 rgba(255,255,255,.25);
+  transition:transform .08s, filter .15s;
 }
-.bigbtn:active { filter:brightness(1.25); }
-.bigbtn.warn { background:#b45309; }
-.btnrow { display:flex; gap:3vmin; width:100%; }
-.btnrow .bigbtn.alt { background:#374151; }
+.bigbtn:active { transform:scale(.98); filter:brightness(1.15); }
+.bigbtn.go    { background:linear-gradient(180deg, #34d399, #059669); box-shadow:0 10px 30px -8px rgba(16,185,129,.6), inset 0 1px 0 rgba(255,255,255,.25); }
+.bigbtn.warn  { background:linear-gradient(180deg, #fbbf24, #d97706); box-shadow:0 10px 30px -8px rgba(245,158,11,.6), inset 0 1px 0 rgba(255,255,255,.25); }
+.btnrow { display:flex; gap:3vmin; width:100%; max-width:130vmin; }
+.btnrow .bigbtn.alt { background:linear-gradient(180deg, #3a4456, #2a3344); box-shadow:0 10px 30px -8px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.1); }
 #btn-config-back {
-  position:absolute; top:2vmin; left:2vmin;
-  font-size:4vmin; color:var(--muted); background:none; border:none; padding:2vmin; cursor:pointer;
+  position:absolute; top:2.5vmin; left:2.5vmin; z-index:6;
+  font-size:3.8vmin; color:var(--muted); background:rgba(255,255,255,.05);
+  border:1px solid var(--border); border-radius:99px; padding:1.5vmin 3.5vmin; cursor:pointer;
 }
-#version { position:absolute; bottom:1vmin; right:2vmin; font-size:2.5vmin; color:#444c5c; }
+#version { position:fixed; bottom:1vmin; right:2vmin; font-size:2.4vmin; color:#39435a; z-index:6; }
 </style>
 </head>
 <body>
 
+<div id="progress"><div class="fill"></div></div>
+<div id="vignette"></div>
+
 <!-- Réglages -->
 <div id="scr-config" class="screen active">
   <h1>Minuteur d'oraux</h1>
+  <div class="subtitle">Exposé puis entretien — visuel uniquement, jamais de son</div>
   <div class="presets" id="presets"></div>
   <div class="custom">
     <label>Exposé (min)<input id="in-expose" type="number" inputmode="numeric" min="1" max="120" value="5"></label>
     <label>Entretien (min)<input id="in-entretien" type="number" inputmode="numeric" min="1" max="120" value="10"></label>
   </div>
   <div id="cfg-total"></div>
-  <button class="bigbtn" id="btn-ready">C'est parti</button>
+  <button class="bigbtn go" id="btn-ready">C'est parti</button>
 </div>
 
 <!-- Minuteur -->
@@ -109,16 +197,18 @@ body.flash { animation:flash 1.2s infinite; }
 <!-- Récapitulatif -->
 <div id="scr-recap" class="screen">
   <h1>Récapitulatif</h1>
-  <div class="recap-line"><span>Exposé réel</span><span class="val" id="rc-expose"></span></div>
-  <div class="recap-line"><span>Entretien réel</span><span class="val" id="rc-entretien"></span></div>
-  <div class="recap-line total"><span>Total</span><span class="val" id="rc-total"></span></div>
+  <div class="card">
+    <div class="recap-line"><span class="lbl">Exposé réel</span><span class="val" id="rc-expose"></span></div>
+    <div class="recap-line"><span class="lbl">Entretien réel</span><span class="val" id="rc-entretien"></span></div>
+    <div class="recap-line total"><span class="lbl">Total</span><span class="val" id="rc-total"></span></div>
+  </div>
   <div class="btnrow">
     <button class="bigbtn alt" id="btn-recap-config">⚙ Réglages</button>
-    <button class="bigbtn" id="btn-next">Candidat suivant</button>
+    <button class="bigbtn go" id="btn-next">Candidat suivant</button>
   </div>
 </div>
 
-<div id="version">v2026-06-11a</div>
+<div id="version">v2026-06-11b</div>
 
 <script>
 'use strict';
@@ -145,6 +235,15 @@ function fmt(sec) {
 }
 function totalSec() { return (cfg.e + cfg.n) * 60; }
 
+// --- Barre de progression ---
+const COLORS = { green:'#10b981', blue:'#3b82f6', amber:'#f59e0b', red:'#ef4444' };
+function setProgress(frac, color) {
+  const f = $('progress').firstElementChild;
+  f.style.width = (Math.max(0, Math.min(1, frac)) * 100) + '%';
+  f.style.background = color;
+  f.style.boxShadow = '0 0 12px ' + color;
+}
+
 // --- Wake Lock : écran allumé pendant l'oral ---
 async function lockScreen() {
   try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
@@ -160,6 +259,7 @@ document.addEventListener('visibilitychange', () => {
 function show(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   $('scr-' + name).classList.add('active');
+  $('progress').style.display = (name === 'timer') ? 'block' : 'none';
 }
 
 // --- Réglages ---
@@ -169,7 +269,8 @@ function renderPresets() {
   PRESETS.forEach(p => {
     const b = document.createElement('button');
     b.className = 'preset';
-    b.textContent = p.e + ' + ' + p.n + ' min';
+    b.innerHTML = '<span class="big">' + p.e + ' + ' + p.n + '</span>' +
+                  '<span class="small">minutes · total ' + (p.e + p.n) + ' min</span>';
     if (p.e === cfg.e && p.n === cfg.n) b.classList.add('selected');
     b.onclick = () => {
       cfg = { e: p.e, n: p.n };
@@ -198,7 +299,8 @@ function gotoReady() {
   $('clock').textContent = fmt(cfg.e * 60);
   $('sub').textContent = 'Exposé ' + cfg.e + ' min · entretien ' + cfg.n + ' min · total ' + (cfg.e + cfg.n) + ' min';
   $('btn-main').textContent = '▶ Démarrer l\'exposé';
-  $('btn-main').className = 'bigbtn';
+  $('btn-main').className = 'bigbtn go';
+  setProgress(1, COLORS.green);
   show('timer');
 }
 
@@ -207,6 +309,7 @@ function mainAction() {
     state = 'expose';
     startExpose = Date.now();
     $('btn-main').textContent = 'Exposé terminé → entretien';
+    $('btn-main').className = 'bigbtn';
     $('btn-config-back').style.display = 'none';
     lockScreen();
     tickTimer = setInterval(tick, 200);
@@ -235,11 +338,13 @@ function tick() {
       $('phase').textContent = 'EXPOSÉ';
       $('clock').textContent = fmt(rem);
       $('sub').textContent = '';
+      setProgress(rem / (cfg.e * 60), COLORS.green);
     } else {
       scr.className = 'screen active depasse';
       $('phase').textContent = 'EXPOSÉ — DÉPASSÉ';
       $('clock').textContent = '+' + fmt(-rem);
       $('sub').textContent = 'Temps d\'exposé prévu : ' + cfg.e + ' min';
+      setProgress(0, COLORS.amber);
     }
   } else if (state === 'entretien') {
     const elapsed = (now - startEntretien) / 1000;
@@ -251,12 +356,14 @@ function tick() {
       $('phase').textContent = 'ENTRETIEN';
       $('clock').textContent = fmt(rem);
       $('sub').textContent = 'Exposé réel : ' + fmt(realExpose);
+      setProgress(maxEntretien > 0 ? rem / maxEntretien : 0, COLORS.blue);
     } else {
       scr.className = 'screen active ecoule';
       document.body.classList.add('flash');
       $('phase').textContent = 'TEMPS ÉCOULÉ';
       $('clock').textContent = '+' + fmt(-rem);
       $('sub').textContent = 'Total prévu ' + (cfg.e + cfg.n) + ' min dépassé · exposé réel ' + fmt(realExpose);
+      setProgress(0, COLORS.red);
     }
   }
 }
