@@ -61,10 +61,20 @@ h1 { font-size:6.5vmin; margin:0; text-align:center; font-weight:800; letter-spa
 .preset.selected { border-color:var(--txt); background:var(--txt); }
 .preset.selected .big { color:#fff; }
 .preset.selected .small { color:#d6d3d1; }
-.custom { display:flex; gap:5vmin; justify-content:center; }
-.custom label { display:flex; flex-direction:column; align-items:center; gap:1.2vmin; font-size:3.2vmin; color:var(--muted); font-weight:500; }
+.custom { display:flex; gap:5vmin; justify-content:center; flex-wrap:wrap; }
+.custom .field { display:flex; flex-direction:column; align-items:center; gap:1.2vmin; font-size:3.2vmin; color:var(--muted); font-weight:500; }
+.stepper { display:flex; align-items:center; gap:2vmin; }
+.step {
+  width:10vmin; height:10vmin; border-radius:50%;
+  border:2px solid var(--track); background:transparent;
+  font-size:5.5vmin; font-weight:800; line-height:1; color:var(--txt);
+  cursor:pointer; font-family:inherit;
+  display:flex; align-items:center; justify-content:center;
+  transition:transform .08s, border-color .15s;
+}
+.step:active { transform:scale(.92); border-color:var(--txt); }
 .custom input {
-  font-size:8vmin; font-weight:800; width:28vmin; text-align:center;
+  font-size:8vmin; font-weight:800; width:22vmin; text-align:center;
   background:transparent; color:var(--txt);
   border:none; border-bottom:3px solid var(--track); border-radius:0;
   padding:.5vmin 0 1vmin;
@@ -149,8 +159,20 @@ h1 { font-size:6.5vmin; margin:0; text-align:center; font-weight:800; letter-spa
   <div class="subtitle">Exposé puis entretien — visuel uniquement, jamais de son</div>
   <div class="presets" id="presets"></div>
   <div class="custom">
-    <label>Exposé (min)<input id="in-expose" type="number" inputmode="numeric" min="1" max="120" value="5"></label>
-    <label>Entretien (min)<input id="in-entretien" type="number" inputmode="numeric" min="0" max="120" value="10"></label>
+    <div class="field">Exposé (min)
+      <span class="stepper">
+        <button type="button" class="step" data-target="in-expose" data-delta="-1">−</button>
+        <input id="in-expose" type="number" inputmode="numeric" min="1" max="120" value="5" aria-label="Exposé (minutes)">
+        <button type="button" class="step" data-target="in-expose" data-delta="1">+</button>
+      </span>
+    </div>
+    <div class="field">Entretien (min)
+      <span class="stepper">
+        <button type="button" class="step" data-target="in-entretien" data-delta="-1">−</button>
+        <input id="in-entretien" type="number" inputmode="numeric" min="0" max="120" value="10" aria-label="Entretien (minutes)">
+        <button type="button" class="step" data-target="in-entretien" data-delta="1">+</button>
+      </span>
+    </div>
   </div>
   <div id="cfg-total"></div>
   <button class="bigbtn go" id="btn-ready">C'est parti</button>
@@ -179,7 +201,7 @@ h1 { font-size:6.5vmin; margin:0; text-align:center; font-weight:800; letter-spa
   </div>
 </div>
 
-<div id="version">v2026-06-11f</div>
+<div id="version">v2026-06-11g</div>
 
 <script>
 'use strict';
@@ -260,6 +282,18 @@ function renderTotal() {
   $('cfg-total').innerHTML = 'Temps total : <b>' + (cfg.e + cfg.n) + ' min</b>';
 }
 $('in-expose').oninput = $('in-entretien').oninput = () => { readInputs(); renderPresets(); renderTotal(); };
+
+// Boutons − / + (les flèches des input number n'existent pas sur Android)
+document.querySelectorAll('.step').forEach(b => {
+  b.onclick = () => {
+    const inp = $(b.dataset.target);
+    const min = parseInt(inp.min, 10), max = parseInt(inp.max, 10);
+    const cur = parseInt(inp.value, 10);
+    const base = Number.isFinite(cur) ? cur : min;
+    inp.value = Math.min(max, Math.max(min, base + parseInt(b.dataset.delta, 10)));
+    readInputs(); renderPresets(); renderTotal();
+  };
+});
 
 // --- Cycle de l'oral ---
 function gotoReady() {
